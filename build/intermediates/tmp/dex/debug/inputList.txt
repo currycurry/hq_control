@@ -1,0 +1,2 @@
+/Users/droga5_639/AndroidStuff/of_v0.8.4_androidStudio/apps/myApps/location_test/build/intermediates/classes/debug
+/Users/droga5_639/AndroidStuff/of_v0.8.4_androidStudio/apps/myApps/location_test/build/intermediates/pre-dexed/debug/classes-41ab2f4d0ad508f89aea08d7115173b29dfdf067.jar
