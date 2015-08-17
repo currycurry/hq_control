@@ -29,6 +29,7 @@ class ofApp : public ofxAndroidApp{
 		void stop();
 		void resume();
 		void reloadTextures();
+		void unloadTextures();
 
 		bool backPressed();
 		void okPressed();
@@ -51,7 +52,8 @@ class ofApp : public ofxAndroidApp{
 		bool fullscreen;
 
 		ofTrueTypeFont font;
-		ofVec3f accel, normAccel, compass_values;
+		ofVec3f accel, normAccel, compass_values, normal_compass;
+		ofVec2f normal_compass_2d;
 		ofPoint orientation;
 		float azimuth;
 		//vector <float> mGravity, mGeomagnetic, orientation;
@@ -65,11 +67,17 @@ class ofApp : public ofxAndroidApp{
         vector <ofVec2f> pentagonPoint;
         vector <ofVec2f> centeredPentagonPoint;
 
-        int margin;
+        int margin, swoop_radius;
         float counter;
         ofVec2f minimum_screen, minimum_world, maximum_screen, maximum_world, minimum_world_spike_centered, maximum_world_spike_centered;
 
+        ofShader shader;
+        int fontHeight;
 
+        ofImage radar;
+        float radarSpeed;
+
+        bool drawCar;
 
         //double altitude;
         //double latitude;
