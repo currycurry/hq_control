@@ -109,7 +109,10 @@ void ofApp::update(){
         if ( success ) {
             //orientation_fusion.assign( 3, 0.0f );
             getOrientation( mR, orientation_fusion );
-            azimuth = orientation_fusion[ 0 ] * 180 / 3.14159f + 180;
+            azimuth = orientation_fusion[ 0 ] * (-180 / 3.14159f);
+            if ( azimuth < 0 ) {
+                azimuth += 360;
+            }
             avgAzimuth = averageAzimuths( azimuth );
         }
     }
@@ -132,14 +135,14 @@ void ofApp::update(){
     messages[3] = "C(X) = " + ofToString(mGeomagnetic[ 0 ]);
     messages[4] = "C(Y) = " + ofToString(mGeomagnetic[ 1 ]);
     messages[5] = "C(Z) = " + ofToString(mGeomagnetic[ 2 ]);
-    messages[6] = "O(X) = " + ofToString(orientation_fusion[ 0 ]);
-    messages[7] = "O(Y) = " + ofToString(orientation_fusion[ 1 ]);
-    messages[8] = "O(Z) = " + ofToString(orientation_fusion[ 2 ]);
+    messages[6] = "O(0) = " + ofToString(orientation_fusion[ 0 ]);
+    messages[7] = "O(1) = " + ofToString(orientation_fusion[ 1 ]);
+    messages[8] = "O(2) = " + ofToString(orientation_fusion[ 2 ]);
 	messages[9] = "LATITUDE = " + ofToString(currentLocation.latitude);
 	messages[10] = "LONGITUDE = " + ofToString(currentLocation.longitude);
 	messages[11] = "ALTITUDE = " + ofToString(currentLocation.altitude);
-	messages[12] = "SPEED = " + ofToString(currentLocation.speed);
-	messages[13] = "BEARING = " + ofToString(currentLocation.bearing);
+	messages[12] = "SPEED (GPS) = " + ofToString(currentLocation.speed);
+	messages[13] = "BEARING (GPS) = " + ofToString(currentLocation.bearing);
     messages[14] = "AZIMUTH = " + ofToString(avgAzimuth);
 
 	normAccel = accel.getNormalized();
@@ -193,8 +196,8 @@ void ofApp::draw(){
         ofTranslate( ofGetWidth() / 8, ofGetHeight() / 2 + 150 );
         ofCircle( 0, 0, ofGetWidth() / 8 * .55 );
         ofPushMatrix();
-            ofRotateZ( azimuth );
-            ofLine( 0, 0, 0, ofGetWidth() / 8 * .55);
+            ofRotateZ( -azimuth );
+            ofLine( 0, 0, 0, -ofGetWidth() / 8 * .55);
         ofPopMatrix();
 
        // ofLine( 0, 0, normal_compass_2d.x * ofGetWidth() / 8 * .6, normal_compass_2d.y * ofGetWidth() / 8 * .6);
@@ -375,8 +378,6 @@ void ofApp::resume(){
     orientation_fusion.assign( 3, 0.0f );
     mR.assign( 9, 0.0f );
     mI.assign( 9, 0.0f );
-
-
 
     smoothing_val = 10;
     lastAzimuths.assign( smoothing_val, 0.0f );
