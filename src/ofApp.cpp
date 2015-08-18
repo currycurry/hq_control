@@ -2,48 +2,43 @@
 
 //--------------------------------------------------------------
 void ofApp::setup(){
+
 	// initialize the accelerometer
 	ofxAccelerometer.setup();
+	// initialize the compass
 	ofxCompass.setup();
-
+	//create GPS listener
 	ofAddListener(ofxAndroidGPS::locationChangedE, this, &ofApp::onLocationChanged);
-
 	//start gps
 	gps_object.startGPS();
+
+	//load assets - font and radar image
+	font.loadFont( "2.ttf", 25, true, false, true, 0.3, 72);
+    radar.loadImage( "radarSwoop1.png");
+
+    ofSetCircleResolution( 50 );
+    ofSetLineWidth( 5 );
+    ofBackground(0, 0, 0);
+
+	//variables for orientation calculations
 	mGravity.assign( 3, 0.0f );
 	mGeomagnetic.assign( 3, 0.0f );
 	orientation_fusion.assign( 3, 0.0f );
 	mR.assign( 9, 0.0f );
 	mI.assign( 9, 0.0f );
-
-
-
     smoothing_val = 10;
     lastAzimuths.assign( smoothing_val, 0.0f );
     azimuth = 0.0;
     avgAzimuth = 0;
     lastAvgAzm = 0.0;
     totalAzimuth = 0.0;
-
-
 	ALPHA = .25; //for low pass filter
-
-
-	font.loadFont( "2.ttf", 25, true, false, true, 0.3, 72);
-	radar.loadImage( "radarSwoop1.png");
-	ofSetCircleResolution( 50 );
-	ofSetLineWidth( 5 );
-	ofBackground(0, 0, 0);
-
-	fullscreen = true;
 
     margin = 100;
     swoop_radius = ofGetHeight() / 2 - ( margin / 2 );
     radarSpeed = .8;
-    counter = 0;
     fontHeight = 25;
-    //minimum_screen.set( ofGetWidth() / 4 + margin, margin );
-    //maximum_screen.set( ofGetWidth() / 4 + ofGetHeight() - margin, ofGetHeight() - margin );
+
     minimum_screen.set( ofGetWidth() - ofGetHeight() + margin, margin );
     maximum_screen.set( ofGetWidth() - margin, ofGetHeight() - margin );
 
@@ -51,10 +46,6 @@ void ofApp::setup(){
 
     minimum_world.set( -119.2357, 40.8063 );
     maximum_world.set( -119.1802, 40.7644 );
-
-    //minimum_world_spike_centered( minimum_world.x - goldenSpike.x, minimum_world.y - goldenSpike.y );
-    //maximum_world_spike_centered( maximum_world.x - goldenSpike.x, maximum_world.y - goldenSpike.y );
-
 
 	pentagonPoint.resize( 5 );
 	centeredPentagonPoint.resize( 5 );
@@ -91,24 +82,19 @@ void ofApp::onLocationChanged(ofxLocation & location) {
 //--------------------------------------------------------------
 void ofApp::update(){
 
-    ofSetFullscreen( fullscreen );
-    minimum_screen.set( ofGetWidth() - ofGetHeight() + margin, margin );
-    maximum_screen.set( ofGetWidth() - margin, ofGetHeight() - margin );
+    accel = ofxAccelerometer.getForce();
+
+    compass_values = ofxCompass.getCompassValues();
 
     mGravity = lowPass( accel, mGravity );
     mGeomagnetic = lowPass( compass_values, mGeomagnetic );
 
-    //orientation = ofxAccelerometer.getOrientation();
-    //azimuth = fmod( orientation.x * 180 / 3.14159f + 180, 360 );
-
     if ( !mGravity.empty() && !mGeomagnetic.empty() ) {
-        //vector <float> mR, mI;
         mR.assign( 9, 0.0f );
         mI.assign( 9, 0.0f );
         bool success = getRotationMatrix( mR, mI, mGravity, mGeomagnetic );
         if ( success ) {
-            //orientation_fusion.assign( 3, 0.0f );
-            getOrientation( mR, orientation_fusion );
+            orientation_fusion = getOrientation( mR, orientation_fusion );
             azimuth = orientation_fusion[ 0 ] * (-180 / 3.14159f);
             if ( azimuth < 0 ) {
                 azimuth += 360;
@@ -116,18 +102,6 @@ void ofApp::update(){
             avgAzimuth = averageAzimuths( azimuth );
         }
     }
-
-    //avgAzimuth = averageAzimuths( azimuth );
-
-	accel = ofxAccelerometer.getForce();
-
-	compass_values = ofxCompass.getCompassValues();
-	normal_compass.x = compass_values.x / sqrt( compass_values.x * compass_values.x + compass_values.y * compass_values.y + compass_values.z * compass_values.z );
-    normal_compass.y = compass_values.y / sqrt( compass_values.x * compass_values.x + compass_values.y * compass_values.y + compass_values.z * compass_values.z );
-    normal_compass.z = compass_values.z / sqrt( compass_values.x * compass_values.x + compass_values.y * compass_values.y + compass_values.z * compass_values.z );
-
-    normal_compass_2d.x = compass_values.x / sqrt( compass_values.x * compass_values.x + compass_values.y * compass_values.y );
-    normal_compass_2d.y = compass_values.y / sqrt( compass_values.x * compass_values.x + compass_values.y * compass_values.y );
 
 	messages[0] = "G(X) = " + ofToString(mGravity[ 0 ],2);
 	messages[1] = "G(Y) = " + ofToString(mGravity[ 1 ],2);
@@ -145,16 +119,17 @@ void ofApp::update(){
 	messages[13] = "BEARING (GPS) = " + ofToString(currentLocation.bearing);
     messages[14] = "AZIMUTH = " + ofToString(avgAzimuth);
 
+    //normalize accelerometer data to draw
 	normAccel = accel.getNormalized();
 
-	car_location = centerToSpike( currentLocation.longitude - 45.267, currentLocation.latitude + .0749 );
-	counter = counter + 0.02f;
+    //calculate car location for drawing
+	car_location = centerToSpike( currentLocation.longitude - 45.267, currentLocation.latitude + .0749 ); //centered at HQ
+	//car_location = centerToSpike( currentLocation.longitude, currentLocation.latitude ); //centered at burning man
 
+    //blink the car dot
 	if ( ofGetFrameNum() % 20 == 0 ) {
 	    drawCar = !drawCar;
 	}
-
-
 
 }
 
@@ -166,41 +141,42 @@ void ofApp::draw(){
     ofBackground( 0, 0, 0 );
     ofSetLineWidth( 5 );
 
+    //text readout and panel
     ofPushMatrix();
-    ofTranslate( 0, 0 );
-	ofSetColor( 0, 255, 4 );
-	ofNoFill();
-	ofRect( 0, 0, ofGetWidth() / 4, ofGetHeight() );
-	//shader.setUniformTexture("tex", text.getFontTexture(), 0);
-	//getFontTexture();
-	font.drawString( messages[0], 10, fontHeight + 20 );
-	font.drawString( messages[1], 10, ( fontHeight + 20 ) * 2 );
-	font.drawString( messages[2], 10, ( fontHeight + 20 ) * 3 );
-	font.drawString( messages[3], 10, ( fontHeight + 20 ) * 4 );
-	font.drawString( messages[4], 10, ( fontHeight + 20 ) * 5 );
-	font.drawString( messages[5], 10, ( fontHeight + 20 ) * 6 );
-	font.drawString( messages[6], 10, ( fontHeight + 20 ) * 7 );
-	font.drawString( messages[7], 10, ( fontHeight + 20 ) * 8 );
-	font.drawString( messages[8], 10, ( fontHeight + 20 ) * 9 );
-    font.drawString( messages[9], 10, ( fontHeight + 20 ) * 10 );
-    font.drawString( messages[10], 10, ( fontHeight + 20 ) * 11 );
-    font.drawString( messages[11], 10, ( fontHeight + 20 ) * 12 );
-    font.drawString( messages[12], 10, ( fontHeight + 20 ) * 13 );
-    font.drawString( messages[13], 10, ( fontHeight + 20 ) * 14 );
-    font.drawString( messages[14], 10, ( fontHeight + 20 ) * 15 );
+        ofTranslate( 0, 0 );
+	    ofSetColor( 0, 255, 4 );
+	    ofNoFill();
+	    ofRect( 0, 0, ofGetWidth() / 4, ofGetHeight() );
+	    //shader.setUniformTexture("tex", text.getFontTexture(), 0);
+	    //getFontTexture();
+	    font.drawString( messages[0], 10, fontHeight + 20 );
+	    font.drawString( messages[1], 10, ( fontHeight + 20 ) * 2 );
+	    font.drawString( messages[2], 10, ( fontHeight + 20 ) * 3 );
+	    font.drawString( messages[3], 10, ( fontHeight + 20 ) * 4 );
+	    font.drawString( messages[4], 10, ( fontHeight + 20 ) * 5 );
+	    font.drawString( messages[5], 10, ( fontHeight + 20 ) * 6 );
+	    font.drawString( messages[6], 10, ( fontHeight + 20 ) * 7 );
+	    font.drawString( messages[7], 10, ( fontHeight + 20 ) * 8 );
+	    font.drawString( messages[8], 10, ( fontHeight + 20 ) * 9 );
+        font.drawString( messages[9], 10, ( fontHeight + 20 ) * 10 );
+        font.drawString( messages[10], 10, ( fontHeight + 20 ) * 11 );
+        font.drawString( messages[11], 10, ( fontHeight + 20 ) * 12 );
+        font.drawString( messages[12], 10, ( fontHeight + 20 ) * 13 );
+        font.drawString( messages[13], 10, ( fontHeight + 20 ) * 14 );
+        font.drawString( messages[14], 10, ( fontHeight + 20 ) * 15 );
 	ofPopMatrix();
 
     //shader.begin();
-    // orientation data
+    // draw compass
     ofPushMatrix();
         ofTranslate( ofGetWidth() / 8, ofGetHeight() / 2 + 150 );
         ofCircle( 0, 0, ofGetWidth() / 8 * .55 );
+
         ofPushMatrix();
             ofRotateZ( -azimuth );
             ofLine( 0, 0, 0, -ofGetWidth() / 8 * .55);
         ofPopMatrix();
 
-       // ofLine( 0, 0, normal_compass_2d.x * ofGetWidth() / 8 * .6, normal_compass_2d.y * ofGetWidth() / 8 * .6);
     ofPopMatrix();
 
     // draw accelerometer data
@@ -211,9 +187,6 @@ void ofApp::draw(){
 	    ofLine( 0, 0, normAccel.z * ( ofGetWidth() / 10 ) * .707, normAccel.z * ( ofGetWidth() / 10 ) * .707 );
 	ofPopMatrix();
 
-
-
-
     ofPushMatrix();
     //center map to golden spike
         ofTranslate( ofMap( goldenSpike.x, minimum_world.x, maximum_world.x, minimum_screen.x, maximum_screen.x ) - 100,
@@ -221,19 +194,15 @@ void ofApp::draw(){
 
         //radar sweep
         ofPushMatrix();
-            ofRotate(ofGetFrameNum() * radarSpeed , 0, 0, 1);//rotate from centre
+            ofRotate( ofGetFrameNum() * radarSpeed , 0, 0, 1);//rotate from center
             ofEnableAlphaBlending();
             radar.draw( -swoop_radius, -swoop_radius, swoop_radius * 2, swoop_radius * 2 );
         ofPopMatrix();
-        ofRotateZ( -45 );
 
-        //radar sweep
-        //ofCircle( 0, 0, swoop_radius );
-        //ofLine( 0, 0, swoop_radius * -sin( counter ), swoop_radius  * cos( counter ));
+        ofRotateZ( -45 ); //rotate the whole thing so the pentagon and city are vertical on the map, north is 45 degrees left of vertical
 
         //pentagon
         ofBeginShape();
-        //ofSetColor( 0, 130, 2);
         for ( int i = 0; i < pentagonPoint.size(); i ++ ) {
     	        ofVertex( centeredPentagonPoint[ i ].x, centeredPentagonPoint[ i ].y);
         }
@@ -242,14 +211,13 @@ void ofApp::draw(){
 
         //draw car based on gps coordinates
         ofFill();
-        //ofSetColor( 0, 255, 255 );
         if ( drawCar ){
             ofCircle( car_location.x, car_location.y, 15 );
         }
 
 	ofPopMatrix();
 
-    //draw north indicator in the lower right hand corner
+    //draw north indicator in the lower right hand corner, north is 45 degrees left of vertical
 	ofPushMatrix();
 	    ofTranslate( ofGetWidth() - margin / 2, ofGetHeight() - margin / 2, 0 );
 	    ofRotateZ( -45 );
@@ -312,51 +280,12 @@ void ofApp::keyReleased(int key){
 
 //--------------------------------------------------------------
 void ofApp::windowResized(int w, int h){
-    //minimum_screen.set( ofGetWidth() / 4 + margin, margin );
-    //maximum_screen.set( ofGetWidth() / 4 + ofGetHeight() - margin, ofGetHeight() - margin );
 
     ofSetCircleResolution( 50 );
 
     minimum_screen.set( ofGetWidth() - ofGetHeight() + margin, margin );
     maximum_screen.set( ofGetWidth() - margin, ofGetHeight() - margin );
 
-
-}
-
-//--------------------------------------------------------------
-void ofApp::touchDown(int x, int y, int id){
-
-    if ( x > 0 && x < 200 ) {
-        if ( y > 0 && y < 200 ) {
-            fullscreen = !fullscreen;
-        }
-    }
-
-
-}
-
-//--------------------------------------------------------------
-void ofApp::touchMoved(int x, int y, int id){
-
-}
-
-//--------------------------------------------------------------
-void ofApp::touchUp(int x, int y, int id){
-
-}
-
-//--------------------------------------------------------------
-void ofApp::touchDoubleTap(int x, int y, int id){
-
-}
-
-//--------------------------------------------------------------
-void ofApp::touchCancelled(int x, int y, int id){
-
-}
-
-//--------------------------------------------------------------
-void ofApp::swipe(ofxAndroidSwipeDir swipeDir, int id){
 
 }
 
@@ -373,83 +302,17 @@ void ofApp::stop(){
 //--------------------------------------------------------------
 void ofApp::resume(){
 
-	mGravity.assign( 3, 0.0f );
-    mGeomagnetic.assign( 3, 0.0f );
-    orientation_fusion.assign( 3, 0.0f );
-    mR.assign( 9, 0.0f );
-    mI.assign( 9, 0.0f );
-
-    smoothing_val = 10;
-    lastAzimuths.assign( smoothing_val, 0.0f );
-    azimuth = 0.0;
-    avgAzimuth = 0;
-    lastAvgAzm = 0.0;
-    totalAzimuth = 0.0;
-
-
-    ALPHA = .25; //for low pass filter
-
-
-    font.loadFont( "2.ttf", 25, true, false, true, 0.3, 72);
-    radar.loadImage( "radarSwoop1.png");
-    ofSetCircleResolution( 50 );
-    ofSetLineWidth( 5 );
-    ofBackground(0, 0, 0);
-
-    fullscreen = true;
-
-    margin = 100;
-    swoop_radius = ofGetHeight() / 2 - ( margin / 2 );
-    radarSpeed = .8;
-    counter = 0;
-    fontHeight = 25;
-    //minimum_screen.set( ofGetWidth() / 4 + margin, margin );
-    //maximum_screen.set( ofGetWidth() / 4 + ofGetHeight() - margin, ofGetHeight() - margin );
-    minimum_screen.set( ofGetWidth() - ofGetHeight() + margin, margin );
-    maximum_screen.set( ofGetWidth() - margin, ofGetHeight() - margin );
-
-    goldenSpike.set( -119.2065, 40.7864 );
-
-    minimum_world.set( -119.2357, 40.8063 );
-        maximum_world.set( -119.1802, 40.7644 );
-
-        //minimum_world_spike_centered( minimum_world.x - goldenSpike.x, minimum_world.y - goldenSpike.y );
-        //maximum_world_spike_centered( maximum_world.x - goldenSpike.x, maximum_world.y - goldenSpike.y );
-
-
-    	pentagonPoint.resize( 5 );
-    	centeredPentagonPoint.resize( 5 );
-    	pentagonPoint[ 0 ].set( -119.2357, 40.783 );
-    	pentagonPoint[ 1 ].set( -119.2199, 40.8063 );
-    	pentagonPoint[ 2 ].set( -119.1857, 40.8022 );
-    	pentagonPoint[ 3 ].set( -119.1802 , 40.7762 );
-    	pentagonPoint[ 4 ].set( -119.2111, 40.7644 );
-
-    	for ( int i = 0; i < pentagonPoint.size(); i ++ ){
-    	    centeredPentagonPoint[ i ] = centerToSpike( pentagonPoint[ i ]);
-    	}
-
-        ofEnableSmoothing();
-        ofEnableAntiAliasing();
-
-        ofSetFrameRate( 40 );
-
 }
 
 //--------------------------------------------------------------
 void ofApp::reloadTextures(){
-
-
 
 }
 
 //--------------------------------------------------------------
 void ofApp::unloadTextures(){
 
-
-
 }
-
 
 //--------------------------------------------------------------
 bool ofApp::backPressed(){
@@ -465,6 +328,7 @@ void ofApp::okPressed(){
 void ofApp::cancelPressed(){
 
 }
+
 //--------------------------------------------------------------
 bool ofApp::getRotationMatrix( vector <float> R, vector <float> I, vector <float> gravity, vector <float> geomagnetic ) {
 
@@ -545,9 +409,6 @@ vector <float> ofApp::getOrientation( vector <float> R, vector <float> values ) 
         values[2] = (float)atan2( -R[8], R[10] );
     }
 
-
-    orientation_fusion = values;
-
     return values;
 
 }
@@ -567,7 +428,6 @@ float ofApp::averageAzimuths( float a ) {
     avgAzm = totalAzimuth / smoothing_val;
     totalAzimuth = 0;
 
-    //lastAvgAzm = avgAzm;
     return avgAzm;
 
 }

@@ -18,13 +18,6 @@ class ofApp : public ofxAndroidApp{
 		void keyReleased(int key);
 		void windowResized(int w, int h);
 
-		void touchDown(int x, int y, int id);
-		void touchMoved(int x, int y, int id);
-		void touchUp(int x, int y, int id);
-		void touchDoubleTap(int x, int y, int id);
-		void touchCancelled(int x, int y, int id);
-		void swipe(ofxAndroidSwipeDir swipeDir, int id);
-
 		void pause();
 		void stop();
 		void resume();
@@ -37,8 +30,7 @@ class ofApp : public ofxAndroidApp{
 
 		void onLocationChanged(ofxLocation & location);
 
-
-        // attempting to port sensor manager code for calculating rotation matrix and orientation
+        //port sensor manager methods for calculating rotation matrix and orientation
 		vector <float> mGravity, mGeomagnetic, orientation_fusion;
 		bool getRotationMatrix( vector <float> R, vector <float> I, vector <float> gravity, vector <float> geomagnetic );
 		vector <float> getOrientation( vector <float> R, vector <float> values );
@@ -61,12 +53,9 @@ class ofApp : public ofxAndroidApp{
 		ofVec2f centerToSpike( float x, float y );
 		ofVec2f car_location;
 
-		bool fullscreen;
-
 		ofTrueTypeFont font;
-		ofVec3f accel, normAccel, compass_values, normal_compass;
-		ofVec2f normal_compass_2d;
-		ofPoint orientation;
+		ofVec3f accel, normAccel, compass_values;
+		//ofPoint orientation;
 
 		float ALPHA;
 		string messages[ 15 ]; //[ 8 ];
@@ -79,16 +68,16 @@ class ofApp : public ofxAndroidApp{
         vector <ofVec2f> centeredPentagonPoint;
 
         int margin, swoop_radius;
-        float counter;
+        //float counter;
         ofVec2f minimum_screen, minimum_world, maximum_screen, maximum_world, minimum_world_spike_centered, maximum_world_spike_centered;
 
-        ofShader shader;
         int fontHeight;
 
         ofImage radar;
         float radarSpeed;
         bool drawCar;
 
+        //ofShader shader;
 
 
 };
