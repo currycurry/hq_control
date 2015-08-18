@@ -37,17 +37,29 @@ class ofApp : public ofxAndroidApp{
 
 		void onLocationChanged(ofxLocation & location);
 
-		vector <float> lowPass( vector <float> input, vector <float> output );
+
+        // attempting to port sensor manager code for calculating rotation matrix and orientation
+		vector <float> mGravity, mGeomagnetic, orientation_fusion;
+		bool getRotationMatrix( vector <float> R, vector <float> I, vector <float> gravity, vector <float> geomagnetic );
+		vector <float> getOrientation( vector <float> R, vector <float> values );
+		vector <float> lowPass( ofVec3f input, vector <float> output );
+
+		vector <float> mR, mI;
+		bool success;
+
 		float averageAzimuths( float a );
+		float azimuth;
+		float avgAzimuth;
+        float lastAvgAzm;
+        float initialAvgAzm;
+        int smoothing_val;
+        vector <float> lastAzimuths;
+        float totalAzimuth;
 
 
 		ofVec2f centerToSpike( ofVec2f );
 		ofVec2f centerToSpike( float x, float y );
 		ofVec2f car_location;
-
-
-
-
 
 		bool fullscreen;
 
@@ -55,8 +67,7 @@ class ofApp : public ofxAndroidApp{
 		ofVec3f accel, normAccel, compass_values, normal_compass;
 		ofVec2f normal_compass_2d;
 		ofPoint orientation;
-		float azimuth;
-		//vector <float> mGravity, mGeomagnetic, orientation;
+
 		float ALPHA;
 		string messages[ 15 ]; //[ 8 ];
 
@@ -76,13 +87,8 @@ class ofApp : public ofxAndroidApp{
 
         ofImage radar;
         float radarSpeed;
-
         bool drawCar;
 
-        //double altitude;
-        //double latitude;
-        //double longitude;
-        //float speed;
-        //float bearing;
+
 
 };

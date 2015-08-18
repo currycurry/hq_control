@@ -10,12 +10,24 @@ void ofApp::setup(){
 
 	//start gps
 	gps_object.startGPS();
+	mGravity.assign( 3, 0.0f );
+	mGeomagnetic.assign( 3, 0.0f );
+	orientation_fusion.assign( 3, 0.0f );
+	mR.assign( 9, 0.0f );
+	mI.assign( 9, 0.0f );
 
-	//mGravity.resize( 3 );
-	//mGeomagnetic.resize( 3 );
-	//orientation.resize( 3 );
+
+
+    smoothing_val = 10;
+    lastAzimuths.assign( smoothing_val, 0.0f );
+    azimuth = 0.0;
+    avgAzimuth = 0;
+    lastAvgAzm = 0.0;
+    totalAzimuth = 0.0;
+
+
 	ALPHA = .25; //for low pass filter
-	azimuth = 0.0;
+
 
 	font.loadFont( "2.ttf", 25, true, false, true, 0.3, 72);
 	radar.loadImage( "radarSwoop1.png");
@@ -83,8 +95,26 @@ void ofApp::update(){
     minimum_screen.set( ofGetWidth() - ofGetHeight() + margin, margin );
     maximum_screen.set( ofGetWidth() - margin, ofGetHeight() - margin );
 
-    orientation = ofxAccelerometer.getOrientation();
-    azimuth = fmod( orientation.x * 180 / 3.14159f + 180, 360 );
+    mGravity = lowPass( accel, mGravity );
+    mGeomagnetic = lowPass( compass_values, mGeomagnetic );
+
+    //orientation = ofxAccelerometer.getOrientation();
+    //azimuth = fmod( orientation.x * 180 / 3.14159f + 180, 360 );
+
+    if ( !mGravity.empty() && !mGeomagnetic.empty() ) {
+        //vector <float> mR, mI;
+        mR.assign( 9, 0.0f );
+        mI.assign( 9, 0.0f );
+        bool success = getRotationMatrix( mR, mI, mGravity, mGeomagnetic );
+        if ( success ) {
+            //orientation_fusion.assign( 3, 0.0f );
+            getOrientation( mR, orientation_fusion );
+            azimuth = orientation_fusion[ 0 ] * 180 / 3.14159f + 180;
+            avgAzimuth = averageAzimuths( azimuth );
+        }
+    }
+
+    //avgAzimuth = averageAzimuths( azimuth );
 
 	accel = ofxAccelerometer.getForce();
 
@@ -96,21 +126,21 @@ void ofApp::update(){
     normal_compass_2d.x = compass_values.x / sqrt( compass_values.x * compass_values.x + compass_values.y * compass_values.y );
     normal_compass_2d.y = compass_values.y / sqrt( compass_values.x * compass_values.x + compass_values.y * compass_values.y );
 
-	messages[0] = "G(X) = " + ofToString(accel.x,2);
-	messages[1] = "G(Y) = " + ofToString(accel.y,2);
-	messages[2] = "G(Z) = " + ofToString(accel.z,2);
-    messages[3] = "C(X) = " + ofToString(normal_compass.x);
-    messages[4] = "C(Y) = " + ofToString(normal_compass.y);
-    messages[5] = "C(Z) = " + ofToString(normal_compass.z);
-    messages[6] = "O(X) = " + ofToString(orientation.x);
-    messages[7] = "O(Y) = " + ofToString(orientation.y);
-    messages[8] = "O(Z) = " + ofToString(orientation.z);
+	messages[0] = "G(X) = " + ofToString(mGravity[ 0 ],2);
+	messages[1] = "G(Y) = " + ofToString(mGravity[ 1 ],2);
+	messages[2] = "G(Z) = " + ofToString(mGravity[ 2 ],2);
+    messages[3] = "C(X) = " + ofToString(mGeomagnetic[ 0 ]);
+    messages[4] = "C(Y) = " + ofToString(mGeomagnetic[ 1 ]);
+    messages[5] = "C(Z) = " + ofToString(mGeomagnetic[ 2 ]);
+    messages[6] = "O(X) = " + ofToString(orientation_fusion[ 0 ]);
+    messages[7] = "O(Y) = " + ofToString(orientation_fusion[ 1 ]);
+    messages[8] = "O(Z) = " + ofToString(orientation_fusion[ 2 ]);
 	messages[9] = "LATITUDE = " + ofToString(currentLocation.latitude);
 	messages[10] = "LONGITUDE = " + ofToString(currentLocation.longitude);
 	messages[11] = "ALTITUDE = " + ofToString(currentLocation.altitude);
 	messages[12] = "SPEED = " + ofToString(currentLocation.speed);
 	messages[13] = "BEARING = " + ofToString(currentLocation.bearing);
-    messages[14] = "AZIMUTH = " + ofToString(azimuth);
+    messages[14] = "AZIMUTH = " + ofToString(avgAzimuth);
 
 	normAccel = accel.getNormalized();
 
@@ -120,6 +150,7 @@ void ofApp::update(){
 	if ( ofGetFrameNum() % 20 == 0 ) {
 	    drawCar = !drawCar;
 	}
+
 
 
 }
@@ -183,7 +214,7 @@ void ofApp::draw(){
     ofPushMatrix();
     //center map to golden spike
         ofTranslate( ofMap( goldenSpike.x, minimum_world.x, maximum_world.x, minimum_screen.x, maximum_screen.x ) - 100,
-                 ofMap( goldenSpike.y, minimum_world.y, maximum_world.y, minimum_screen.y, maximum_screen.y), 0 ); //golden spike as new (0,0)
+                 ofMap( goldenSpike.y, minimum_world.y, maximum_world.y, minimum_screen.y, maximum_screen.y) + 40, 0 ); //golden spike as new (0,0)
 
         //radar sweep
         ofPushMatrix();
@@ -251,12 +282,17 @@ ofVec2f ofApp::centerToSpike  ( float x, float y ){
 }
 
 //--------------------------------------------------------------
-vector <float> ofApp::lowPass( vector <float> input, vector <float> output ) {
+vector <float> ofApp::lowPass( ofVec3f input, vector <float> output ) {
 
-    //if ( output == null ) return input;
-    for ( int i = 0; i < input.size(); i++ ) {
-        output[ i ] = output[ i ] + ALPHA * ( input[ i ] - output[ i ]);
+    if ( output.empty() ) {
+        output[ 0 ] = input.x;
+        output[ 1 ] = input.y;
+        output[ 2 ] = input.z;
     }
+    output[ 0 ] = output[ 0 ] + ALPHA * (input.x - output[ 0 ]);
+    output[ 1 ] = output[ 1 ] + ALPHA * (input.y - output[ 1 ]);
+    output[ 2 ] = output[ 2 ] + ALPHA * (input.z - output[ 2 ]);
+
     return output;
 
 }
@@ -334,28 +370,46 @@ void ofApp::stop(){
 //--------------------------------------------------------------
 void ofApp::resume(){
 
-	ALPHA = .25; //for low pass filter
-    	azimuth = 0.0;
+	mGravity.assign( 3, 0.0f );
+    mGeomagnetic.assign( 3, 0.0f );
+    orientation_fusion.assign( 3, 0.0f );
+    mR.assign( 9, 0.0f );
+    mI.assign( 9, 0.0f );
 
-    	font.loadFont( "2.ttf", 25, true, false, true, 0.3, 72);
-    	ofSetCircleResolution( 50 );
-    	ofSetLineWidth( 5 );
-    	ofBackground(0, 0, 0);
 
-    	fullscreen = true;
 
-        margin = 100;
-        swoop_radius = ofGetHeight() / 2 - ( margin / 2 );
-        counter = 0;
-        fontHeight = 25;
-        //minimum_screen.set( ofGetWidth() / 4 + margin, margin );
-        //maximum_screen.set( ofGetWidth() / 4 + ofGetHeight() - margin, ofGetHeight() - margin );
-        minimum_screen.set( ofGetWidth() - ofGetHeight() + margin, margin );
-        maximum_screen.set( ofGetWidth() - margin, ofGetHeight() - margin );
+    smoothing_val = 10;
+    lastAzimuths.assign( smoothing_val, 0.0f );
+    azimuth = 0.0;
+    avgAzimuth = 0;
+    lastAvgAzm = 0.0;
+    totalAzimuth = 0.0;
 
-        goldenSpike.set( -119.2065, 40.7864 );
 
-        minimum_world.set( -119.2357, 40.8063 );
+    ALPHA = .25; //for low pass filter
+
+
+    font.loadFont( "2.ttf", 25, true, false, true, 0.3, 72);
+    radar.loadImage( "radarSwoop1.png");
+    ofSetCircleResolution( 50 );
+    ofSetLineWidth( 5 );
+    ofBackground(0, 0, 0);
+
+    fullscreen = true;
+
+    margin = 100;
+    swoop_radius = ofGetHeight() / 2 - ( margin / 2 );
+    radarSpeed = .8;
+    counter = 0;
+    fontHeight = 25;
+    //minimum_screen.set( ofGetWidth() / 4 + margin, margin );
+    //maximum_screen.set( ofGetWidth() / 4 + ofGetHeight() - margin, ofGetHeight() - margin );
+    minimum_screen.set( ofGetWidth() - ofGetHeight() + margin, margin );
+    maximum_screen.set( ofGetWidth() - margin, ofGetHeight() - margin );
+
+    goldenSpike.set( -119.2065, 40.7864 );
+
+    minimum_world.set( -119.2357, 40.8063 );
         maximum_world.set( -119.1802, 40.7644 );
 
         //minimum_world_spike_centered( minimum_world.x - goldenSpike.x, minimum_world.y - goldenSpike.y );
@@ -376,6 +430,8 @@ void ofApp::resume(){
 
         ofEnableSmoothing();
         ofEnableAntiAliasing();
+
+        ofSetFrameRate( 40 );
 
 }
 
@@ -406,5 +462,111 @@ void ofApp::okPressed(){
 
 //--------------------------------------------------------------
 void ofApp::cancelPressed(){
+
+}
+//--------------------------------------------------------------
+bool ofApp::getRotationMatrix( vector <float> R, vector <float> I, vector <float> gravity, vector <float> geomagnetic ) {
+
+    float Ax = gravity[0];
+    float Ay = gravity[1];
+    float Az = gravity[2];
+    float Ex = geomagnetic[0];
+    float Ey = geomagnetic[1];
+    float Ez = geomagnetic[2];
+    float Hx = Ey*Az - Ez*Ay;
+    float Hy = Ez*Ax - Ex*Az;
+    float Hz = Ex*Ay - Ey*Ax;
+    float normH = (float)sqrt(Hx*Hx + Hy*Hy + Hz*Hz);
+    if (normH < 0.1f) {
+            // device is close to free fall (or in space?), or close to
+            // magnetic north pole. Typical values are  > 100.
+            return false;
+        }
+        float invH = 1.0f / normH;
+        Hx *= invH;
+        Hy *= invH;
+        Hz *= invH;
+        float invA = 1.0f / (float)sqrt(Ax*Ax + Ay*Ay + Az*Az);
+        Ax *= invA;
+        Ay *= invA;
+        Az *= invA;
+        float Mx = Ay*Hz - Az*Hy;
+        float My = Az*Hx - Ax*Hz;
+        float Mz = Ax*Hy - Ay*Hx;
+        if ( !R.empty() ) {
+            if (R.size() == 9) {
+                R[0] = Hx;     R[1] = Hy;     R[2] = Hz;
+                R[3] = Mx;     R[4] = My;     R[5] = Mz;
+                R[6] = Ax;     R[7] = Ay;     R[8] = Az;
+            } else if (R.size() == 16) {
+                R[0]  = Hx;    R[1]  = Hy;    R[2]  = Hz;   R[3]  = 0;
+                R[4]  = Mx;    R[5]  = My;    R[6]  = Mz;   R[7]  = 0;
+                R[8]  = Ax;    R[9]  = Ay;    R[10] = Az;   R[11] = 0;
+                R[12] = 0;     R[13] = 0;     R[14] = 0;    R[15] = 1;
+            }
+            mR = R;
+
+        }
+        if ( !I.empty() ) {
+            // compute the inclination matrix by projecting the geomagnetic
+            // vector onto the Z (gravity) and X (horizontal component
+            // of geomagnetic vector) axes.
+            float invE = 1.0f / (float)sqrt(Ex*Ex + Ey*Ey + Ez*Ez);
+            float c = (Ex*Mx + Ey*My + Ez*Mz) * invE;
+            float s = (Ex*Ax + Ey*Ay + Ez*Az) * invE;
+            if (I.size() == 9) {
+                I[0] = 1;     I[1] = 0;     I[2] = 0;
+                I[3] = 0;     I[4] = c;     I[5] = s;
+                I[6] = 0;     I[7] =-s;     I[8] = c;
+            } else if (I.size() == 16) {
+                I[0] = 1;     I[1] = 0;     I[2] = 0;
+                I[4] = 0;     I[5] = c;     I[6] = s;
+                I[8] = 0;     I[9] =-s;     I[10]= c;
+                I[3] = I[7] = I[11] = I[12] = I[13] = I[14] = 0;
+                I[15] = 1;
+            }
+            mI = I;
+        }
+        return true;
+
+}
+
+//--------------------------------------------------------------
+vector <float> ofApp::getOrientation( vector <float> R, vector <float> values ) {
+
+    if (R.size() == 9) {
+        values[0] = (float)atan2( R[1], R[4] );
+        values[1] = (float)asin( -R[7] );
+        values[2] = (float)atan2( -R[6], R[8] );
+    } else {
+        values[0] = (float)atan2( R[1], R[5] );
+        values[1] = (float)asin( -R[9] );
+        values[2] = (float)atan2( -R[8], R[10] );
+    }
+
+
+    orientation_fusion = values;
+
+    return values;
+
+}
+
+
+//--------------------------------------------------------------
+float ofApp::averageAzimuths( float a ) {
+    float avgAzm;
+    for ( int i = 0; i < smoothing_val - 1; i ++ ) {
+        lastAzimuths[ i + 1 ] = lastAzimuths[ i ];
+    }
+    lastAzimuths[ 0 ] = azimuth;
+
+    for ( int i = 0; i < smoothing_val; i ++ ) {
+        totalAzimuth += lastAzimuths[ i ];
+    }
+    avgAzm = totalAzimuth / smoothing_val;
+    totalAzimuth = 0;
+
+    //lastAvgAzm = avgAzm;
+    return avgAzm;
 
 }

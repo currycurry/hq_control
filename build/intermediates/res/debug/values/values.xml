@@ -2,7 +2,7 @@
 <resources>
     <!-- From: file:/Users/droga5_639/AndroidStuff/of_v0.8.4_androidStudio/apps/myApps/location_test/res/values/strings.xml -->
     <eat-comment/>
-    <string name="app_name">location_test</string>
+    <string name="app_name">HQ_Control</string>
     <!-- From: file:/Users/droga5_639/AndroidStuff/of_v0.8.4_androidStudio/apps/myApps/location_test/build/intermediates/exploded-aar/of_v0.8.4_androidStudio/ofAndroidLib/unspecified/res/values/values.xml -->
     <eat-comment/>
     <string name="hello">Hello World!</string>
