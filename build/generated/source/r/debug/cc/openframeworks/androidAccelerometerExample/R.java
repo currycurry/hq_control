@@ -29,7 +29,8 @@ public final class R {
     }
     public static final class raw {
         public static final int androidaccelerometerexampleresources=0x7f040000;
-        public static final int location_testresources=0x7f040001;
+        public static final int control_appresources=0x7f040001;
+        public static final int location_testresources=0x7f040002;
     }
     public static final class string {
         public static final int app_name=0x7f050000;

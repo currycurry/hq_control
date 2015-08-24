@@ -15,6 +15,11 @@ void ofApp::setup(){
 	//load assets - font and radar image
 	font.loadFont( "2.ttf", 25, true, false, true, 0.3, 72);
     radar.loadImage( "radarSwoop1.png");
+    city.loadImage("city.png");
+    grid.loadImage("grid.png");
+
+    drawCity = true;
+    drawGrid = true;
 
     ofSetCircleResolution( 50 );
     ofSetLineWidth( 5 );
@@ -36,8 +41,11 @@ void ofApp::setup(){
 
     margin = 100;
     swoop_radius = ofGetHeight() / 2 - ( margin / 2 );
+    city_width = ofGetHeight() * 5 / 8;
+    city_height = city_width * city.getHeight() / city.getWidth();
     radarSpeed = .8;
     fontHeight = 25;
+    offSet = 25;
 
     minimum_screen.set( ofGetWidth() - ofGetHeight() + margin, margin );
     maximum_screen.set( ofGetWidth() - margin, ofGetHeight() - margin );
@@ -147,6 +155,7 @@ void ofApp::draw(){
 	    ofSetColor( 0, 255, 4 );
 	    ofNoFill();
 	    ofRect( 0, 0, ofGetWidth() / 4, ofGetHeight() );
+	    ofRect( 0, 0, ofGetWidth(), ofGetHeight());
 	    //shader.setUniformTexture("tex", text.getFontTexture(), 0);
 	    //getFontTexture();
 	    font.drawString( messages[0], 10, fontHeight + 20 );
@@ -199,12 +208,16 @@ void ofApp::draw(){
             radar.draw( -swoop_radius, -swoop_radius, swoop_radius * 2, swoop_radius * 2 );
         ofPopMatrix();
 
+        if ( drawCity ) {
+            city.draw( -city_width / 2, -city_height / 3 + offSet, city_width, city_height );
+        }
+
         ofRotateZ( -45 ); //rotate the whole thing so the pentagon and city are vertical on the map, north is 45 degrees left of vertical
 
         //pentagon
         ofBeginShape();
         for ( int i = 0; i < pentagonPoint.size(); i ++ ) {
-    	        ofVertex( centeredPentagonPoint[ i ].x, centeredPentagonPoint[ i ].y);
+    	    ofVertex( centeredPentagonPoint[ i ].x, centeredPentagonPoint[ i ].y);
         }
         ofVertex( centeredPentagonPoint[ 0 ].x, centeredPentagonPoint[ 0 ].y );
         ofEndShape();
@@ -225,6 +238,10 @@ void ofApp::draw(){
 	    ofLine( 0, -200, 30, -160 );
 	    ofLine( 0, -200, -30, -160 );
 	ofPopMatrix();
+
+	if ( drawGrid ) {
+        grid.draw( ofGetWidth() / 4, 0, 3 * ofGetWidth() / 4, ofGetHeight() );
+    }
 
     //shader.end();
 
@@ -286,6 +303,37 @@ void ofApp::windowResized(int w, int h){
     minimum_screen.set( ofGetWidth() - ofGetHeight() + margin, margin );
     maximum_screen.set( ofGetWidth() - margin, ofGetHeight() - margin );
 
+
+}
+
+//--------------------------------------------------------------
+void ofApp::touchDown(int x, int y, int id){
+
+    if ( x < 100 && y < 100 ) {
+        drawCity = !drawCity;
+    }
+
+    if ( x > ofGetWidth() - 100 && y < 100 ) {
+        drawGrid = !drawGrid;
+    }
+
+    /*if ( x < 100 && y > ofGetHeight() - 100 ) {
+        offSet +=5;
+    }
+
+    if ( x > ofGetWidth() - 100 && y > ofGetHeight() - 100 ) {
+        offSet -=5;
+    }*/
+
+}
+
+//--------------------------------------------------------------
+void ofApp::touchMoved(int x, int y, int id){
+
+}
+
+//--------------------------------------------------------------
+void ofApp::touchUp(int x, int y, int id){
 
 }
 

@@ -18,6 +18,10 @@ class ofApp : public ofxAndroidApp{
 		void keyReleased(int key);
 		void windowResized(int w, int h);
 
+		void touchDown(int x, int y, int id);
+        void touchMoved(int x, int y, int id);
+        void touchUp(int x, int y, int id);
+
 		void pause();
 		void stop();
 		void resume();
@@ -67,7 +71,7 @@ class ofApp : public ofxAndroidApp{
         vector <ofVec2f> pentagonPoint;
         vector <ofVec2f> centeredPentagonPoint;
 
-        int margin, swoop_radius;
+        int margin, swoop_radius, city_width, city_height;
         //float counter;
         ofVec2f minimum_screen, minimum_world, maximum_screen, maximum_world, minimum_world_spike_centered, maximum_world_spike_centered;
 
@@ -77,7 +81,13 @@ class ofApp : public ofxAndroidApp{
         float radarSpeed;
         bool drawCar;
 
-        //ofShader shader;
+        ofImage grid;
+        bool drawGrid;
+
+        ofImage city;
+        bool drawCity;
+
+        int offSet;
 
 
 };
