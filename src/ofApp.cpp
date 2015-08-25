@@ -19,7 +19,7 @@ void ofApp::setup(){
     grid.loadImage("grid.png");
 
     drawCity = true;
-    drawGrid = true;
+    drawGrid = false;
 
     ofSetCircleResolution( 50 );
     ofSetLineWidth( 5 );
@@ -41,11 +41,11 @@ void ofApp::setup(){
 
     margin = 100;
     swoop_radius = ofGetHeight() / 2 - ( margin / 2 );
-    city_width = ofGetHeight() * 5 / 8;
+    city_width = ofGetHeight() * 5 / 8 + 20;
     city_height = city_width * city.getHeight() / city.getWidth();
     radarSpeed = .8;
     fontHeight = 25;
-    offSet = 25;
+    offSet = 30;
 
     minimum_screen.set( ofGetWidth() - ofGetHeight() + margin, margin );
     maximum_screen.set( ofGetWidth() - margin, ofGetHeight() - margin );
@@ -317,13 +317,13 @@ void ofApp::touchDown(int x, int y, int id){
         drawGrid = !drawGrid;
     }
 
-    /*if ( x < 100 && y > ofGetHeight() - 100 ) {
+    if ( x < 100 && y > ofGetHeight() - 100 ) {
         offSet +=5;
     }
 
     if ( x > ofGetWidth() - 100 && y > ofGetHeight() - 100 ) {
         offSet -=5;
-    }*/
+    }
 
 }
 
