@@ -39,6 +39,8 @@ void ofApp::setup(){
     totalAzimuth = 0.0;
 	ALPHA = .25; //for low pass filter
 
+
+
     margin = 100;
     swoop_radius = ofGetHeight() / 2 - ( margin / 2 );
     city_width = ofGetHeight() * 5 / 8 + 20;
@@ -51,6 +53,9 @@ void ofApp::setup(){
     maximum_screen.set( ofGetWidth() - margin, ofGetHeight() - margin );
 
     goldenSpike.set( -119.2065, 40.7864 );
+
+    test_center_lat = goldenSpike.y - 40.7045; //center to current location to see gps indicator on screen. if both are 0, location is centered on the golden spike
+    test_center_long = goldenSpike.x - ( -74.006 );
 
     minimum_world.set( -119.2357, 40.8063 );
     maximum_world.set( -119.1802, 40.7644 );
@@ -72,15 +77,7 @@ void ofApp::setup(){
 
     ofSetFrameRate( 40 );
 
-    /*#ifdef TARGET_OPENGLES
-    	shader.load("shadersES2/shader");
-    #else
-    	if(ofIsGLProgrammableRenderer()){
-    		shader.load("shadersGL3/shader");
-    	}else{
-    		shader.load("shadersGL2/shader");
-    	}
-    #endif*/
+
 }
 //--------------------------------------------------------------
 void ofApp::onLocationChanged(ofxLocation & location) {
@@ -131,7 +128,7 @@ void ofApp::update(){
 	normAccel = accel.getNormalized();
 
     //calculate car location for drawing
-	car_location = centerToSpike( currentLocation.longitude - 45.267, currentLocation.latitude + .0749 ); //centered at HQ
+	car_location = centerToSpike( currentLocation.longitude + test_center_long, currentLocation.latitude + test_center_lat ); //centered at my current location in nyc
 	//car_location = centerToSpike( currentLocation.longitude, currentLocation.latitude ); //centered at burning man
 
     //blink the car dot
@@ -204,11 +201,12 @@ void ofApp::draw(){
         //radar sweep
         ofPushMatrix();
             ofRotate( ofGetFrameNum() * radarSpeed , 0, 0, 1);//rotate from center
-            ofEnableAlphaBlending();
+            //ofEnableAlphaBlending();
             radar.draw( -swoop_radius, -swoop_radius, swoop_radius * 2, swoop_radius * 2 );
         ofPopMatrix();
 
         if ( drawCity ) {
+            //ofEnableAlphaBlending();
             city.draw( -city_width / 2, -city_height / 3 + offSet, city_width, city_height );
         }
 

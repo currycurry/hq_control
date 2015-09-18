@@ -1,6 +1,6 @@
-set solib-search-path /Users/droga5_639/AndroidStuff/of_v0.8.4_androidStudio/apps/myApps/location_test/obj/local/armeabi:/Users/droga5_639/AndroidStuff/of_v0.8.4_androidStudio/apps/myApps/location_test/libs/armeabi
+set solib-search-path /Users/droga5_639/AndroidStuff/of_v0.8.4_androidStudio/apps/myApps/hq_control/obj/local/armeabi:/Users/droga5_639/AndroidStuff/of_v0.8.4_androidStudio/apps/myApps/hq_control/libs/armeabi
 directory //Users/droga5_639/AndroidStuff/android-ndk-r9b/platforms/android-17/arch-arm/usr/include
-directory /Users/droga5_639/AndroidStuff/of_v0.8.4_androidStudio/apps/myApps/location_test/src
+directory /Users/droga5_639/AndroidStuff/of_v0.8.4_androidStudio/apps/myApps/hq_control/src
 directory //Users/droga5_639/AndroidStuff/android-ndk-r9b/sources/cxx-stl/system
-directory /Users/droga5_639/AndroidStuff/of_v0.8.4_androidStudio/apps/myApps/location_test/libs/armeabi
+directory /Users/droga5_639/AndroidStuff/of_v0.8.4_androidStudio/apps/myApps/hq_control/libs/armeabi
 

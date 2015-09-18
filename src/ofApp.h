@@ -89,5 +89,7 @@ class ofApp : public ofxAndroidApp{
 
         int offSet;
 
+        float test_center_lat, test_center_long;
+
 
 };

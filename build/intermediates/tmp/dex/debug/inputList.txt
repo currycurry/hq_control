@@ -1,2 +1,2 @@
-/Users/droga5_639/AndroidStuff/of_v0.8.4_androidStudio/apps/myApps/location_test/build/intermediates/classes/debug
-/Users/droga5_639/AndroidStuff/of_v0.8.4_androidStudio/apps/myApps/location_test/build/intermediates/pre-dexed/debug/classes-41ab2f4d0ad508f89aea08d7115173b29dfdf067.jar
+/Users/droga5_639/AndroidStuff/of_v0.8.4_androidStudio/apps/myApps/hq_control/build/intermediates/classes/debug
+/Users/droga5_639/AndroidStuff/of_v0.8.4_androidStudio/apps/myApps/hq_control/build/intermediates/pre-dexed/debug/classes-0e2e0a68cb8a683a9dd1f3f28b86f076cf0ad384.jar

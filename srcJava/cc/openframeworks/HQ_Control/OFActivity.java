@@ -1,4 +1,4 @@
-package cc.openframeworks.HQ_Control;
+package cc.openframeworks.hq_control;
 
 import android.os.Bundle;
 import android.view.KeyEvent;
